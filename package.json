@@ -1,0 +1,9 @@
+{
+	"dependencies": {
+		"coffee-script": "*",
+		"request": "*",
+		"jquery": ">=2.1",
+		"jsdom": "*",
+		"express": "*"
+	}
+}
