@@ -11,11 +11,12 @@ var request = require('request').defaults({
 });
 var app = express();
 
-
 app.get('/latest', function(req, response) {
 	// First find ID of the latest build
 	request.get('https://testflightapp.com/m/api/apps/' + tfAppId, function(err, res, body) {
 		var buildID = body['list'][0]['id'];
+		// console.log(res.statusCode);
+		// console.log(body);
 		// Then retrieve installation URL of the latest build
 		request.get('https://testflightapp.com/m/api/apps/' + tfAppId + '/' + buildID, function(err, res, body) {
 			console.log('will redirect to ' + body['install_url']);
@@ -24,4 +25,6 @@ app.get('/latest', function(req, response) {
 	});
 });
 
-app.listen(3000);
+// bind the app to listen for connections on a specified port
+var port = process.env.PORT || 3000;
+app.listen(port);
