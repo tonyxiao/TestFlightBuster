@@ -13,20 +13,28 @@ var request = require('request').defaults({
 });
 var app = express();
 
-function findBuildByBundleVersion(bundleVersion, seek, callback) {
-	var pattern = new RegExp("^.*?\\(" + bundleVersion + "\\)$");
-	var pageSize = 100;
+function listBuildsForApp(offset, limit, callback) {
 	request.get({
 		url: 'https://testflightapp.com/m/api/apps/' + tfAppId,
 		qs: {
-			seek: seek,
-			pagesize: pageSize
+			seek: offset,
+			pagesize: limit
 		}
 	}, function(err, res, body) {
-		var buildList = body['list'];
+		if (err) {
+			callback(null);
+		} else {
+			callback(body['list']);
+		}
+	});
+}
 
+function findBuildByBuildBumber(buildNumber, offset, callback) {
+	var pattern = new RegExp("^.*?\\(" + buildNumber + "\\)$");
+	var limit = 100;
+	listBuildsForApp(offset, limit, function(buildList) {
 		// Empty build list means that we've exhausted all builds
-		if (buildList.length == 0) {
+		if (!buildList || buildList.length == 0) {
 			callback(null);
 			return;
 		}
@@ -43,39 +51,41 @@ function findBuildByBundleVersion(bundleVersion, seek, callback) {
 		}
 
 		// Recursive callback
-		findBuildByBundleVersion(bundleVersion, seek + pageSize, callback);
+		findBuildByBuildBumber(buildNumber, offset + limit, callback);
 	});
 }
 
-app.get('/install/latest', function(req, response) {
-	// First find ID of the latest build
-	request.get('https://testflightapp.com/m/api/apps/' + tfAppId, function(err, res, body) {
-		var buildID = body['list'][0]['id'];
-		// console.log(res.statusCode);
-		// console.log(body);
-		// Then retrieve installation URL of the latest build
-		request.get('https://testflightapp.com/m/api/apps/' + tfAppId + '/' + buildID, function(err, res, body) {
-			console.log('will redirect to ' + body['install_url']);
-			response.redirect(body['install_url']);
-		});
+function redirectToBuild(response, build) {
+	request.get('https://testflightapp.com/m/api/apps/' + tfAppId + '/' + build['id'], function(err, res, body) {
+		console.log(body);
+		console.log('will redirect to ' + build['bundle_version'] + ' url: ' + body['install_url']);
+		response.redirect(body['install_url']);
 	});
+}
+
+app.get('/latest', function(req, response) {
+	// First find ID of the latest build
+	listBuildsForApp(0, 1, function(buildList) {
+		if (!buildList || buildList.length == 0) {
+			response.status(404).endI();
+		} else {
+			redirectToBuild(response, buildList[0]);
+		}
+	})
 });
 
-app.get('/install', function(req, response) {
-	var bundle_version = req.query.bundle_version;
-	if (!bundle_version) {
-		response.status(400);
+app.get('/v/:buildNumber', function(req, response) {
+	var buildNumber = req.params.buildNumber;
+	if (!buildNumber) {
+		response.status(400).end();
 		return;
 	}
-	findBuildByBundleVersion(bundle_version, 0, function(build_info) {
-		if (!build_info) {
+	findBuildByBuildBumber(buildNumber, 0, function(build) {
+		if (!build) {
 			response.status(404).end();
 			return;
 		}
-		request.get('https://testflightapp.com/m/api/apps/' + tfAppId + '/' + build_info['id'], function(err, res, body) {
-			console.log('will redirect to ' + body['install_url']);
-			response.redirect(body['install_url']);
-		});
+		redirectToBuild(response, build);
 	});
 });
 
