@@ -1,7 +1,7 @@
+require('newrelic');
 var tfCookie = '93d98b24ff70c226de78a6809e3b0f05';
 var tfAppId = 1267682; // Marco Polo Dev
 var pageSize = 100;
-
 
 var express = require('express');
 var request = require('request').defaults({

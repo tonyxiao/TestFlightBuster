@@ -2,6 +2,7 @@
 	"dependencies": {
 		"coffee-script": "*",
 		"request": "*",
-		"express": "*"
+		"express": "*",
+		"newrelic": "*"
 	}
 }
